@@ -10,7 +10,9 @@ Requirements
 
 PHP-Daemon-Manager is written in PHP and has been tested on Debian 7 32bit. 
  
+ 
 It requires the following services: 
+ 
 php5-common php5-cli service start-stop-daemon 
  
  
@@ -51,6 +53,7 @@ and enter
 * * * * * /usr/bin/php5 -f /daemons/check.php
 ```
 to check whether the daemons are running once every minute. 
+ 
 Remember to fix the pathes to php5 and your check.php 
  
  
@@ -67,7 +70,9 @@ Create a section for the daemon and add the attribute
 enabled = 1
 ```
 to control the daemon with the checking cronjob. 
+ 
 enabled = 1 starts the daemon 
+ 
 enabled = 0 stops the daemon 
  
  
@@ -79,4 +84,5 @@ service mydaemon [start|stop|status|restart]
  
  
 Remember: You can't do both. An enabled = 1 will always start the deamon, even when stopped by shell command. 
+ 
 Also remember to use the name of your daemon instead of mydaemon. 
