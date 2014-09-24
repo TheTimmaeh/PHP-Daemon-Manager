@@ -1,0 +1,3 @@
+Inside /run/ the Daemon controller will save the pid file, which holds the process id.
+It is being used to communicate with a running daemon.
+Deleting the file can result in multiple instances.

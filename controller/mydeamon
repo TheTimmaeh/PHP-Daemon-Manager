@@ -1,0 +1,81 @@
+#! /bin/sh
+
+NAME=mydeamon
+PIDFILE="/daemons/runs/${NAME}.pid"
+LOGFILE="/daemons/logs/${NAME}.log"
+
+SSDAEMON="/sbin/start-stop-daemon"
+PHP5="/usr/bin/php5"
+JOB="/daemons/jobs/${NAME}.php"
+
+START_DAEMON="${SSDAEMON} --start --background --make-pidfile --pidfile ${PIDFILE} --exec ${PHP5} ${JOB} >> ${LOGFILE}"
+STATUS_DAEMON="${SSDAEMON} --status --pidfile ${PIDFILE}"
+STOP_DAEMON="${SSDAEMON} --stop --pidfile ${PIDFILE}"
+
+test -x $PHP5 || exit 0
+
+set -e
+
+case "$1" in
+    start)
+        echo -n "Starting ${NAME}: "
+        $START_DAEMON
+	sleep 3
+
+	$STATUS_DAEMON
+        exitval=$?
+        if [ $exitval = 0 ];
+          then
+            echo 'OK'
+          else
+            echo 'ERROR'
+        fi
+        ;;
+
+    stop)
+        echo -n "Stopping ${NAME}: "
+        $STOP_DAEMON
+	sleep 1
+
+        echo "OK"
+        rm -f $PIDFILE
+        ;;
+
+    status)
+        $STATUS_DAEMON
+        exitval=$?
+        if [ $exitval = 0 ];
+          then
+            echo 'Running'
+          else
+            echo 'Not running'
+        fi
+        ;;
+
+    restart|force-reload)
+        echo -n "Stopping ${NAME}: "
+        $STOP_DAEMON
+        sleep 1
+
+	echo "OK"
+	echo -n "Starting ${NAME}: "
+        $START_DAEMON
+	sleep 3
+
+	$STATUS_DAEMON
+        exitval=$?
+        if [ $exitval = 0 ];
+          then
+            echo 'OK'
+          else
+            echo 'ERROR'
+        fi
+        ;;
+
+    *)
+        echo "Usage: service ${NAME} {start|stop|status|restart|force-reload}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0
