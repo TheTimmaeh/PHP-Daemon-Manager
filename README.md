@@ -27,7 +27,7 @@ sudo apt-get install php5-common php5-cli service start-stop-daemon
 Copy all files to a specific direction. Personally I'm using the /daemon/ folder.
  
  
-Check path for 'start-stop-daemon' and 'php5' with
+Check pathes for 'start-stop-daemon' and 'php5' with
 ```
 which start-stop-daemon
 which php5
