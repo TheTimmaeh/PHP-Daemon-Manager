@@ -36,6 +36,12 @@ which php5
 and fix the pathes in controller/mydaemon or whatever you call it.  
   
   
+Create symlink with  
+```
+ln -s /daemons/controller/mydaemon /etc/init.d/mydaemon
+```
+  
+  
 Check path for 'service' with  
 ```
 which service
