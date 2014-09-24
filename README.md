@@ -1,7 +1,7 @@
 PHP-Daemon-Manager
 ==================
 
-Lets you manage PHP Daemon using start-stop-daemon.
+Lets you manage PHP daemons using start-stop-daemon.
  
  
  
