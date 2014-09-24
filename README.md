@@ -66,7 +66,7 @@ Create a section for the daemon and add the attribute
 ```
 enabled = 1
 ```
-to let the daemon being controlled by checking cronjob.
+to control the daemon with the checking cronjob.
 enabled = 1 starts the daemon
 enabled = 0 stops the daemon
  
