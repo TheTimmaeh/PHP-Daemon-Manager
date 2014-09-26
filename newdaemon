@@ -1,0 +1,239 @@
+#!/bin/bash
+
+
+#Ask for daemon name
+echo
+echo
+echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+echo
+echo
+echo "PHP-Daemon-Manager Daemon Creation"
+echo
+echo
+echo "-   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -"
+echo
+echo
+STDINSTPATH=`pwd`
+echo -n "Choose PHP-Daemon-Manager directory (${STDINSTPATH}): "
+read INSTPATH
+if [[ ! $INSTPATH ]]
+  then
+    INSTPATH=$STDINSTPATH
+fi
+echo
+echo
+if [[ ! -d $INSTPATH/controller ]] || [[ ! -d $INSTPATH/jobs ]] || [[ ! -d $INSTPATH/logs ]] || [[ ! -d $INSTPATH/runs ]]
+  then
+    echo "Could not find PHP-Daemon-Manager in specified direction."
+    echo
+    echo
+    echo "Creation process has been aborted."
+    echo
+    exit 0
+fi
+echo "PHP-Daemon-Manager has been found in '${INSTPATH}'."
+
+#Ask for daemon name
+echo
+echo
+echo "-   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -"
+echo
+echo
+echo -n "Choose a daemon name (mydaemon): "
+read DAEMONNAME
+if [[ ! $DAEMONNAME ]]
+  then
+    DAEMONNAME=mydaemon
+fi
+echo
+echo
+if [[ -e $INSTPATH/controller/$DAEMONNAME ]]
+  then
+    echo "There is already a daemon called '${DAEMONNAME}."
+    echo
+    echo
+    echo "Creation process has been aborted."
+    echo
+    exit 0
+fi
+echo "A daemon called '${DAEMONNAME}' will be generated."
+echo
+echo
+echo "-   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -"
+echo
+
+
+#Extend daemons.ini
+echo
+echo -n "Extending daemons configuration file...     "
+cat >> $INSTPATH/daemons.ini <<EOF
+
+#Remove both '#' to enable the control of the daemon with the checking cronjob.
+#[${DAEMONNAME}]
+#enabled = 1
+EOF
+echo "OK"
+
+
+#Create daemon controller
+echo
+echo -n "Creating daemon controller file...          "
+SSDAEMONPATH=`which start-stop-daemon`
+PHP5PATH=`which php5`
+cat > $INSTPATH/controller/$DAEMONNAME <<EOF
+#!/bin/bash
+
+NAME=${DAEMONNAME}
+PIDFILE="${INSTPATH}/runs/\${NAME}.pid"
+LOGFILE="${INSTPATH}/logs/\${NAME}.log"
+
+SSDAEMON="${SSDAEMONPATH}"
+PHP5="${PHP5PATH}"
+JOB="${INSTPATH}/jobs/\${NAME}.php"
+
+START_DAEMON="\${SSDAEMON} --start --background --make-pidfile --pidfile \${PIDFILE} --exec \${PHP5} \${JOB} >> \${LOGFILE}"
+STATUS_DAEMON="\${SSDAEMON} --status --pidfile \${PIDFILE}"
+STOP_DAEMON="\${SSDAEMON} --stop --pidfile \${PIDFILE}"
+
+test -x \$PHP5 || exit 0
+
+set -e
+
+case "\$1" in
+  start)
+    echo -n "Starting \${NAME}: "
+    \$START_DAEMON
+    sleep 3
+
+    if [[ ! -e \$PIDFILE ]] || [[ ! -s \$PIDFILE ]]
+      then
+        echo 'ERROR'
+        exit
+    fi
+
+    \$STATUS_DAEMON
+    if [[ \$? -eq 0 ]]
+      then
+        echo 'OK'
+      else
+        echo 'ERROR'
+    fi
+  ;;
+
+  stop)
+    echo -n "Stopping \${NAME}: "
+    \$STOP_DAEMON
+    sleep 1
+
+    echo "OK"
+    rm -f \$PIDFILE
+  ;;
+
+  status)
+
+    if [[ ! -e \$PIDFILE ]] || [[ ! -s \$PIDFILE ]]
+      then
+        echo 'Offline'
+        exit
+    fi
+
+    \$STATUS_DAEMON
+    if [[ \$? -eq 0 ]]
+      then
+        echo 'Online'
+      else
+        echo 'Offline'
+    fi
+  ;;
+
+  restart|force-reload)
+    echo -n "Stopping \${NAME}: "
+    \$STOP_DAEMON
+    sleep 1
+
+    echo "OK"
+    echo -n "Starting \${NAME}: "
+    \$START_DAEMON
+    sleep 3
+
+    if [[ ! -e \$PIDFILE ]] || [[ ! -s \$PIDFILE ]]
+      then
+        echo 'ERROR'
+        exit
+    fi
+
+    \$STATUS_DAEMON
+    if [[ \$? -eq 0 ]]
+      then
+        echo 'OK'
+      else
+        echo 'ERROR'
+    fi
+  ;;
+
+  *)
+    echo "Usage: service \${NAME} [start|stop|status|restart|force-reload]"
+    exit 1
+  ;;
+esac
+
+exit 0
+EOF
+echo "OK"
+
+
+#Create daemon job
+echo
+echo -n "Creating daemon job file...                 "
+cat > $INSTPATH/jobs/$DAEMONNAME.php <<EOF
+<?php
+
+  for(\$i = 1; \$i <= 100000; \$i++){
+
+    \$content = "Loop-Run #\$i\n";
+
+    file_put_contents("${INSTPATH}/logs/${DAEMONNAME}.log", \$content, FILE_APPEND | LOCK_EX);
+
+    sleep(5);
+
+  }
+
+?>
+
+EOF
+echo "OK"
+
+
+#Fixing permissions
+echo
+echo -n "Fixing permissions...                       "
+chmod +x $INSTPATH/controller/$DAEMONNAME
+echo "OK"
+
+
+#Create symlink
+echo
+echo -n "Creating symlink...                         "
+ln -s $INSTPATH/controller/$DAEMONNAME /etc/init.d/$DAEMONNAME
+echo "OK"
+
+
+#Creation complete
+echo
+echo
+echo "-   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -"
+echo
+echo
+echo "Creation complete."
+echo
+echo
+echo
+echo "Use your daemon with"
+echo
+echo "    service ${DAEMONNAME} [start|stop|status|restart|force-reload]"
+echo
+echo "or enable the daemon by uncommenting your daemon in daemons.ini."
+echo
+echo
+echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+echo
