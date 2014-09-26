@@ -19,47 +19,19 @@ php5-common php5-cli service start-stop-daemon
 Setup
 =====
 
-Open your shell and execute the following commands:  
+Open your shell and download the setup file using  
 ```
-sudo apt-get update
-sudo apt-get install php5-common php5-cli service start-stop-daemon
+wget https://raw.githubusercontent.com/Timmaeh/PHP-Daemon-Manager/master/setup
 ```
  
-Copy all files to a specific direction. Personally I'm using the /daemon/ folder.  
   
   
-Check pathes for 'start-stop-daemon' and 'php5' with  
+Execute setup with  
 ```
-which start-stop-daemon
-which php5
+bash setup
 ```
-and fix the pathes in controller/mydaemon or whatever you call it.  
-  
-  
-Create symlink with  
-```
-ln -s /daemons/controller/mydaemon /etc/init.d/mydaemon
-```
-  
-  
-Check path for 'service' with  
-```
-which service
-```
-and fix the path in check.php  
-  
-  
-Edit the cronjob file with  
-```
-crontab -e
-```
-and enter  
-```
-* * * * * /usr/bin/php5 -f /daemons/check.php
-```
-to check whether the daemons are running once every minute.  
-  
-Remember to fix the pathes to php5 and your check.php  
+and follow the instructions.  
+The setup will install all the neccessary services and it create all directories and files including a sample daemon. It will also set up the checking cronjob.
  
  
  
@@ -88,4 +60,3 @@ service mydaemon [start|stop|status|restart]
  
  
 Remember: You can't do both. An enabled = 1 will always start the deamon, even when stopped by shell command.  
-Also remember to use the name of your daemon instead of mydaemon.
