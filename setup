@@ -257,7 +257,7 @@ case "\$1" in
   ;;
 
   *)
-    echo "Usage: service \${NAME} {start|stop|status|restart|force-reload}" >&2
+    echo "Usage: service \${NAME} [start|stop|status|restart|force-reload]"
     exit 1
   ;;
 esac
@@ -316,7 +316,15 @@ echo
 echo "-   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -"
 echo
 echo
-echo "Installation complete!"
+echo "Installation complete."
+echo
+echo
+echo
+echo "Use your daemon with"
+echo
+echo "    service ${DAEMONNAME} [start|stop|status|restart|force-reload]"
+echo
+echo "or enable the daemon by uncommenting your daemon in daemons.ini."
 echo
 echo
 echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
