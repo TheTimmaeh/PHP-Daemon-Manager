@@ -1,0 +1,323 @@
+#!/bin/bash
+
+
+#Update
+echo
+echo
+echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+echo
+echo
+echo "Updating package index files."
+echo
+echo
+apt-get update
+
+
+#Upgrade
+echo
+echo
+echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+echo
+echo
+echo "Fetching newest versions of all installed packages."
+echo
+echo
+apt-get upgrade
+
+
+#Install required commands
+echo
+echo
+echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+echo
+echo
+echo "Installing start-stop-daemon service php5-common php5-cli."
+echo
+echo
+apt-get install start-stop-daemon service php5-common php5-cli
+
+
+#Ask for install path
+echo
+echo
+echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+echo
+echo
+echo "PHP-Daemon-Manager Installation Process"
+echo
+echo
+echo "-   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -"
+echo
+echo
+STDINSTPATH=`pwd`
+echo -n "Choose installation directory (${STDINSTPATH}): "
+read INSTPATH
+if [[ ! $INSTPATH ]]
+  then
+    INSTPATH=$STDINSTPATH
+fi
+echo
+echo
+echo "PHP-Daemon-Manager will be installed in '${INSTPATH}'"
+
+
+#Ask for daemon name
+echo
+echo
+echo "-   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -"
+echo
+echo
+echo -n "Choose a daemon name (mydaemon): "
+read DAEMONNAME
+if [[ ! $DAEMONNAME ]]
+  then
+    DAEMONNAME=mydaemon
+fi
+echo
+echo
+echo "A daemon called '${DAEMONNAME}' will be generated."
+echo
+echo
+echo "-   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -"
+echo
+
+
+#Create installation path if neccessary
+if [[ ! -d $INSTPATH ]]
+  then
+    echo
+    echo -n "Creating installation directory...          "
+    mkdir -p $INSTPATH
+    echo "OK"
+fi
+
+
+#Create directories
+echo
+echo -n "Creating neccessary directories...          "
+mkdir $INSTPATH/controller
+mkdir $INSTPATH/jobs
+mkdir $INSTPATH/logs
+mkdir $INSTPATH/runs
+echo "OK"
+
+
+#Create daemons.ini
+echo
+echo -n "Creating daemons configuration file...      "
+cat > $INSTPATH/daemons.ini <<EOF
+#
+# Deamon Configuration File
+# 
+# Each deamon forms its own section containing the 'enabled' attribute
+# which indicates whether the checking cronjob starts/stops it if neccessary.
+#
+
+#Remove both '#' to enable the control of the daemon with the checking cronjob.
+#[${DAEMONNAME}]
+#enabled = 1
+EOF
+echo "OK"
+
+
+#Create check.php
+echo
+echo -n "Creating daemons checking file...           "
+SERVICEPATH=`which service`
+cat > $INSTPATH/check.php <<EOF
+<?php
+
+  #Display all errors, output gets stored in log file
+  error_reporting('E_ALL');
+
+  #Read Deamon configuration file
+  \$daemons = parse_ini_file('daemons.ini', true);
+
+  #Define path to 'service'
+  \$service = '${SERVICEPATH}';
+
+  #Loop through Daemons found in configuration file
+  foreach(\$daemons as \$daemon => \$config){
+
+    #Check whether Daemon controller exists
+    if(file_exists("/etc/init.d/{\$daemon}")){
+
+      #Get the status of the Daemon
+      \$status = shell_exec("{\$service} {\$daemon} status");
+
+      #Start Daemon, if not running, but enabled in configuration file
+      if(trim(\$status) != 'Online' && \$config['enabled']) shell_exec("{\$service} {\$daemon} start");
+
+      #Stop Daemon, if running, but disabled in configuration file
+      else if(trim(\$status) == 'Online' && !\$config['enabled']) shell_exec("{\$service} {\$daemon} stop");
+
+    }
+
+  }
+
+?>
+EOF
+echo "OK"
+
+
+#Create daemon controller
+echo
+echo -n "Creating daemon controller file...          "
+SSDAEMONPATH=`which start-stop-daemon`
+PHP5PATH=`which php5`
+cat > $INSTPATH/controller/$DAEMONNAME <<EOF
+#!/bin/bash
+
+NAME=${DAEMONNAME}
+PIDFILE="${INSTPATH}/runs/\${NAME}.pid"
+LOGFILE="${INSTPATH}/logs/\${NAME}.log"
+
+SSDAEMON="${SSDAEMONPATH}"
+PHP5="${PHP5PATH}"
+JOB="${INSTPATH}/jobs/\${NAME}.php"
+
+START_DAEMON="\${SSDAEMON} --start --background --make-pidfile --pidfile \${PIDFILE} --exec \${PHP5} \${JOB} >> \${LOGFILE}"
+STATUS_DAEMON="\${SSDAEMON} --status --pidfile \${PIDFILE}"
+STOP_DAEMON="\${SSDAEMON} --stop --pidfile \${PIDFILE}"
+
+test -x \$PHP5 || exit 0
+
+set -e
+
+case "\$1" in
+  start)
+    echo -n "Starting \${NAME}: "
+    \$START_DAEMON
+    sleep 3
+
+    if [[ ! -e \$PIDFILE ]] || [[ ! -s \$PIDFILE ]]
+      then
+        echo 'ERROR'
+        exit
+    fi
+
+    \$STATUS_DAEMON
+    if [[ \$? -eq 0 ]]
+      then
+        echo 'OK'
+      else
+        echo 'ERROR'
+    fi
+  ;;
+
+  stop)
+    echo -n "Stopping \${NAME}: "
+    \$STOP_DAEMON
+    sleep 1
+
+    echo "OK"
+    rm -f \$PIDFILE
+  ;;
+
+  status)
+
+    if [[ ! -e \$PIDFILE ]] || [[ ! -s \$PIDFILE ]]
+      then
+        echo 'Offline'
+        exit
+    fi
+
+    \$STATUS_DAEMON
+    if [[ \$? -eq 0 ]]
+      then
+        echo 'Online'
+      else
+        echo 'Offline'
+    fi
+  ;;
+
+  restart|force-reload)
+    echo -n "Stopping \${NAME}: "
+    \$STOP_DAEMON
+    sleep 1
+
+    echo "OK"
+    echo -n "Starting \${NAME}: "
+    \$START_DAEMON
+    sleep 3
+
+    if [[ ! -e \$PIDFILE ]] || [[ ! -s \$PIDFILE ]]
+      then
+        echo 'ERROR'
+        exit
+    fi
+
+    \$STATUS_DAEMON
+    if [[ \$? -eq 0 ]]
+      then
+        echo 'OK'
+      else
+        echo 'ERROR'
+    fi
+  ;;
+
+  *)
+    echo "Usage: service \${NAME} {start|stop|status|restart|force-reload}" >&2
+    exit 1
+  ;;
+esac
+
+exit 0
+EOF
+echo "OK"
+
+
+#Create daemon job
+echo
+echo -n "Creating daemon job file...                 "
+cat > $INSTPATH/jobs/$DAEMONNAME.php <<EOF
+<?php
+
+  for(\$i = 1; \$i <= 100000; \$i++){
+
+    \$content = "Loop-Run #\$i\n";
+
+    file_put_contents("${INSTPATH}/logs/${DAEMONNAME}.log", \$content, FILE_APPEND | LOCK_EX);
+
+    sleep(5);
+
+  }
+
+?>
+
+EOF
+echo "OK"
+
+
+#Fixing permissions
+echo
+echo -n "Fixing permissions...                       "
+chmod +x $INSTPATH/controller/$DAEMONNAME
+echo "OK"
+
+
+#Create symlink
+echo
+echo -n "Creating symlink...                         "
+ln -s $INSTPATH/controller/$DAEMONNAME /etc/init.d/$DAEMONNAME
+echo "OK"
+
+
+#Create cronjob
+echo
+echo -n "Creating cronjob...                         "
+crontab -l | { cat; echo "* * * * * ${PHP5PATH} -f ${INSTPATH}/check.php >> /tmp/check.log 2>&1"; } | crontab -
+echo "OK"
+
+
+#Installation complete
+echo
+echo
+echo "-   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -"
+echo
+echo
+echo "Installation complete!"
+echo
+echo
+echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+echo
