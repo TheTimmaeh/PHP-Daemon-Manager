@@ -12,7 +12,7 @@ PHP-Daemon-Manager is written in PHP and has been tested on Debian 7 32bit.
   
   
 It requires the following services:  
-php5-common php5-cli service start-stop-daemon  
+php5-common php5-cli  
  
  
  
