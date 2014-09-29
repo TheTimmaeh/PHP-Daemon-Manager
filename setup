@@ -31,10 +31,10 @@ echo
 echo "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 echo
 echo
-echo "Installing start-stop-daemon service php5-common php5-cli."
+echo "Installing php5-common php5-cli."
 echo
 echo
-apt-get install start-stop-daemon service php5-common php5-cli
+apt-get install php5-common php5-cli
 
 
 #Ask for install path
