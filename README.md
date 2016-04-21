@@ -21,7 +21,7 @@ Setup
 
 Open your shell and download the setup file using  
 ```
-wget https://raw.githubusercontent.com/Timmaeh/PHP-Daemon-Manager/master/setup
+wget https://raw.githubusercontent.com/TheTimmaeh/PHP-Daemon-Manager/master/setup
 ```
  
   
