@@ -31,7 +31,7 @@ Execute setup with
 bash setup
 ```
 and follow the instructions.  
-The setup will install all the neccessary services and it create all directories and files including a sample daemon. It will also set up the checking cronjob.
+The setup will install all the neccessary services and create all directories and files including a sample daemon. It will also set up the checking cronjob.
  
  
  
